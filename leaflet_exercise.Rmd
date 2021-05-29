@@ -1,0 +1,105 @@
+---
+title: "New Covid Cases and Vaccinated Population across South Asia"
+author: "SA"
+date: "5/29/2021"
+output: html_document
+---
+## Instructions
+Create a web page using R Markdown that features a map created with Leaflet.
+
+Host your webpage on either GitHub Pages, RPubs, or NeoCities.
+
+Your webpage must contain the date that you created the document, and it must contain a map created with Leaflet. We would love to see you show off your creativity!
+
+## Review criteria
+The rubric contains the following two questions:
+
+Does the web page feature a date and is this date less than two months before the date that you’re grading this assignment?
+Does the web page feature an interactive map that appears to have been created with Leaflet?
+Submission
+
+
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(leaflet)
+```
+# Submission
+
+## Creating Data Frame With the Following Details
+#### 1.Country 2.Latitude 3.Longitude 4.New Cases in May 5.Latest Count of Vaccinated Population in May 6.Population of Country
+Source: https://github.com/CSSEGISandData/COVID-19: JHU CSSE Covid-19 Data
+
+```{r, echo=TRUE}
+md_country <- data.frame(Country = c("Afghanistan","Bangladesh",
+"Bhutan","India","Indonesia","Myanmar","Pakistan","Sri Lanka"),
+             lat=c(33.9391,23.685,27.5142,20.5937,0.7893, 21.9162,30.3753,7.8731),
+             lon = c(67.71,90.3563, 90.4336, 78.9629,  113.9213,95.956, 69.3451,80.7718),
+            New_Cases = c(8621,35853,417,8390488,129131, 597,88265,66715),
+            Total_Vaccinations = c(590454,9901717,482716,201203166,25782177,2994900,
+6130509,1790688),
+pop = c( 38928341, 164689383,  771612,  1380004385, 273523621, 54409794, 220892331,  21413250))
+
+head(md_country,n=30)
+```
+
+## Creating New Metric - Number of Vaccinations Given as % of Population of Country
+Age and other exclusion criteria for not administering vaccines are not considered
+```{r, echo=TRUE}
+md_country$pop_vaccine = (md_country$Total_Vaccinations/md_country$pop)*100
+md_country$sqrt_cases = sqrt(md_country$New_Cases)
+head(md_country)
+```
+
+## Visualization using leaflet
+### Pop-up Colours - 
+They denote population % Vaccinated (>=50 : Green, >=15 and < 50 : Orange, < 15 : Red), Only Bhutan is green right now while all the other countries are red.
+
+### Labels - 
+They have details on New Cases in May and Latest Vaccination Numbers respectively
+
+### Circles 
+They denote the count of new cases, highlighting the need to vaccinate quickly in countries with larger circles
+
+
+```{r, echo=TRUE}
+labs <- lapply(seq(nrow(md_country)), function(i) {
+  paste0( '<p>', md_country[i, "Country"], '<p></p>', 
+          md_country[i, "New_Cases"], '</p><p>', 
+          md_country[i, "Total_Vaccinations"],'</p><p>')
+       })
+
+
+getColor <- function(pop_vaccine) {
+  sapply(md_country$pop_vaccine, function(pop_vaccine) {
+  if(pop_vaccine >= 50) {
+    "green"
+  } else if(pop_vaccine >=15) {
+    "orange"
+  } else {
+    "red"
+  } })
+}
+
+icons <- awesomeIcons(
+  icon = 'ios-close',
+  iconColor = 'black',
+  library = 'ion',
+  markerColor = getColor(md_country)
+)
+
+md_country %>%
+  leaflet() %>%
+  addTiles() %>%
+  addAwesomeMarkers(~lon, ~lat,icon=icons, popup = ~as.character(Country), label = lapply(labs,htmltools::HTML))%>%
+  addCircles(weight = 1, radius = (md_country$sqrt_cases)*200)
+
+
+
+```
+
+
